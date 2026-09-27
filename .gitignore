@@ -1,0 +1,8 @@
+.gradle/
+build/
+run/
+versions/
+*.iml
+.idea/
+.sc_active_version
+libs/
