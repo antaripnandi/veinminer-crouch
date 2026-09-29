@@ -3,10 +3,15 @@
   "id": "veinminer",
   "version": "${version}",
   "name": "Vein Miner",
-  "description": "Vein Miner utility mod. Credits - Antarip",
+  "description": "Mine entire ore veins seamlessly by crouching while breaking blocks.",
   "authors": [
-    "Credits - Antarip"
+    "Antarip Nandi"
   ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/veinminer-crouch",
+    "sources": "https://github.com/antaripnandi/veinminer-crouch",
+    "issues": "https://github.com/antaripnandi/veinminer-crouch/issues"
+  },
   "license": "MIT",
   "environment": "*",
   "entrypoints": {
