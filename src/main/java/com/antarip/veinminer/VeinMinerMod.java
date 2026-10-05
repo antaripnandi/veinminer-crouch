@@ -83,6 +83,9 @@ public class VeinMinerMod implements ModInitializer {
                         if (dx == 0 && dy == 0 && dz == 0) continue;
                         BlockPos neighbor = current.offset(dx, dy, dz);
 
+                        if (!world.hasChunkAt(neighbor)) continue;
+                        if (!world.mayInteract(player, neighbor)) continue;
+
                         if (!visited.contains(neighbor) && visited.size() < config.maxOres) {
                             BlockState neighborState = world.getBlockState(neighbor);
                             // Only mine identical ore blocks
@@ -104,9 +107,19 @@ public class VeinMinerMod implements ModInitializer {
         for (BlockPos pos : toBreak) {
             BlockState state = world.getBlockState(pos);
             // Collect drops
-            bundledDrops.addAll(Block.getDrops(state, world, pos, null, player, tool));
-            // Spawn authentic vanilla experience orbs (e.g. coal, diamond, lapis, quartz)
-            state.spawnAfterBreak(world, pos, tool, true);
+            List<ItemStack> drops = Block.getDrops(state, world, pos, null, player, tool);
+            bundledDrops.addAll(drops);
+
+            // Silk touch check: if block dropped itself, suppress experience drops to prevent infinite XP dupes
+            boolean droppedSelf = false;
+            for (ItemStack drop : drops) {
+                if (drop.is(state.getBlock().asItem())) {
+                    droppedSelf = true;
+                    break;
+                }
+            }
+            state.spawnAfterBreak(world, pos, tool, !droppedSelf);
+
             // Authentic block break sound and particles
             world.levelEvent(2001, pos, Block.getId(state));
             // Erase block
@@ -121,23 +134,30 @@ public class VeinMinerMod implements ModInitializer {
             }
         }
 
-        // Spawn bundled ore drops at the start position
-        Map<Item, Integer> mergedCounts = new HashMap<>();
+        // Spawn bundled ore drops at the start position preserving all components/tags
+        List<ItemStack> mergedDrops = new ArrayList<>();
         for (ItemStack stack : bundledDrops) {
             if (stack.isEmpty()) continue;
-            mergedCounts.put(stack.getItem(), mergedCounts.getOrDefault(stack.getItem(), 0) + stack.getCount());
+            boolean merged = false;
+            for (ItemStack existing : mergedDrops) {
+                if (ItemStack.matches(existing, stack) && existing.getCount() < existing.getMaxStackSize()) {
+                    int transfer = Math.min(stack.getCount(), existing.getMaxStackSize() - existing.getCount());
+                    existing.grow(transfer);
+                    stack.shrink(transfer);
+                    if (stack.isEmpty()) {
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!stack.isEmpty()) {
+                mergedDrops.add(stack.copy());
+            }
         }
 
-        for (Map.Entry<Item, Integer> entry : mergedCounts.entrySet()) {
-            Item item = entry.getKey();
-            int totalCount = entry.getValue();
-            while (totalCount > 0) {
-                int countToSpawn = Math.min(totalCount, item.getDefaultMaxStackSize());
-                ItemStack bundledStack = new ItemStack(item, countToSpawn);
-                ItemEntity entity = new ItemEntity(world, startPos.getX() + 0.5, startPos.getY() + 0.5, startPos.getZ() + 0.5, bundledStack);
-                world.addFreshEntity(entity);
-                totalCount -= countToSpawn;
-            }
+        for (ItemStack stack : mergedDrops) {
+            ItemEntity entity = new ItemEntity(world, startPos.getX() + 0.5, startPos.getY() + 0.5, startPos.getZ() + 0.5, stack);
+            world.addFreshEntity(entity);
         }
     }
 }
