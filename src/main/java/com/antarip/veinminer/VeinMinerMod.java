@@ -105,6 +105,10 @@ public class VeinMinerMod implements ModInitializer {
             BlockState state = world.getBlockState(pos);
             // Collect drops
             bundledDrops.addAll(Block.getDrops(state, world, pos, null, player, tool));
+            // Spawn authentic vanilla experience orbs (e.g. coal, diamond, lapis, quartz)
+            state.spawnAfterBreak(world, pos, tool, true);
+            // Authentic block break sound and particles
+            world.levelEvent(2001, pos, Block.getId(state));
             // Erase block
             world.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 
